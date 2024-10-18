@@ -1,3 +1,5 @@
+from xmlrpc.client import DateTime
+
 from sqlalchemy.orm import relationship
 from database import Base
 from sqlalchemy import Column, Integer, String, ForeignKey
@@ -12,6 +14,8 @@ class Users(Base):
 
     # Relacja z modelem Chat
     chats = relationship("Chat", back_populates="user")
+    comments = relationship("Comments", back_populates="user")
+
 
 
 class Stocks(Base):
@@ -23,6 +27,21 @@ class Stocks(Base):
     curr_price = Column(Integer, nullable=False)
     yesterday_price = Column(Integer, nullable=False)
     analyse =  Column(String, nullable=True)
+    comments = relationship("Comments", back_populates="stocks")
+
+
+
+class Comments(Base):
+    __tablename__ = 'comments'
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    content = Column(String, nullable=False)
+    date = Column(String, nullable=False)
+
+    symbol = relationship("Stocks", back_populates="comments")
+    user = relationship("Users", back_populates="comments")
+
 
 
 class Chat(Base):
