@@ -1,0 +1,1 @@
+openai.api_key = "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"  # Zamień na swój klucz API
