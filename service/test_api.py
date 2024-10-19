@@ -1,13 +1,10 @@
 import openai
-from data.database import get_firestore_db
 import httpx
 from fastapi import HTTPException
 from datetime import datetime, timedelta
-from data.models import Comments
+import asyncio
 
-ALPHA_VANTAGE_API_KEY = '525RTDGM1B7TXKW5'
-openai.api_key = "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"  # Zamień na swój klucz API
-
+ALPHA_VANTAGE_API_KEY = 'xx'
 
 async def fetch_stock_data(symbol: str):
     url = f"https://www.alphavantage.co/query"
@@ -29,7 +26,6 @@ async def fetch_stock_data(symbol: str):
 
         return data["Time Series (Daily)"]
 
-
 async def fetch_alpha_vantage_news(symbol: str):
     url = "https://www.alphavantage.co/query"
     params = {
@@ -45,7 +41,6 @@ async def fetch_alpha_vantage_news(symbol: str):
         else:
             raise HTTPException(status_code=response.status_code, detail="Error fetching news from Alpha Vantage")
 
-
 async def analyze_article_content(content: str):
     try:
         response = await openai.ChatCompletion.create(
@@ -59,8 +54,7 @@ async def analyze_article_content(content: str):
         print(f"Błąd podczas analizy artykułu: {e}")
         return 0  # Domyślna wartość w przypadku błędu
 
-
-async def fetch_stock_info(symbol: str):
+async def fetch_stock_info(symbol: str = "AAPL"):  # Przykładowy symbol: Apple Inc. (AAPL)
     try:
         # Pobieranie danych akcji
         stock_data = await fetch_stock_data(symbol)
@@ -68,12 +62,6 @@ async def fetch_stock_info(symbol: str):
         # Ustal datę sprzed 30 dni
         thirty_days_ago = datetime.now() - timedelta(days=30)
 
-        # Przechowywanie danych do bazy
-        db = get_firestore_db()
-        stock_ref = db.collection('stocks').document(symbol)
-
-        # Sprawdzanie czy dokument już istnieje
-        stock_doc = stock_ref.get()
         stock_prices = []
 
         # Filtracja danych i zapis do listy
@@ -96,26 +84,17 @@ async def fetch_stock_info(symbol: str):
         )
         stock_analysis = response['choices'][0]['message']['content']
 
-        # Zapis danych do Firestore
-        if stock_doc.exists:
-            stock_ref.update({
-                'prices': stock_prices,
-                'analyse': stock_analysis
-            })
-        else:
-            stock_ref.set({
-                'symbol': symbol,
-                'name': symbol,
-                'curr_price': stock_prices[-1]['close'] if stock_prices else 0,
-                'yesterday_price': stock_prices[-2]['close'] if len(stock_prices) > 1 else 0,
-                'prices': stock_prices,
-                'analyse': stock_analysis
-            })
+        # Wyświetlanie informacji w konsoli
+        print(f"Symbol: {symbol}")
+        print(f"Analiza akcji: {stock_analysis}")
+        print("Dane akcji z ostatnich 30 dni:")
+        for price in stock_prices:
+            print(f"Data: {price['date']}, Otwarcie: {price['open']}, Zamknięcie: {price['close']}")
 
         # Pobieranie artykułów o danej akcji
         articles = await fetch_alpha_vantage_news(symbol)
 
-        # Zapis artykułów do bazy danych
+        print("Artykuły o akcji:")
         for article in articles:
             title = article['title']
             content = article['summary']
@@ -124,18 +103,17 @@ async def fetch_stock_info(symbol: str):
             # Analiza treści artykułu
             status_value = await analyze_article_content(content)
 
-            # Zapis do bazy danych
-            comment = Comments(
-                title=title,
-                content=content,
-                date=datetime.strptime(date, "%Y-%m-%dT%H:%M:%SZ").isoformat(),
-                status=status_value
-            )
-            db.add(comment)
-
-        db.commit()  # Zapisz wszystkie zmiany
+            # Wyświetlanie artykułu w konsoli
+            print(f"Tytuł: {title}")
+            print(f"Data: {date}")
+            print(f"Treść: {content}")
+            print(f"Status: {status_value}")
 
         return stock_analysis
     except Exception as e:
         print(f"Błąd podczas pobierania informacji o akcji: {e}")
         return None
+
+# Uruchomienie kodu
+if __name__ == "__main__":
+    asyncio.run(fetch_stock_info("AAPL"))  # Przykładowy symbol: AAPL

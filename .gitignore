@@ -1,5 +1,5 @@
 # created by virtualenv automatically
 venv/Lib
-serviceAccountKey.json
+server/serviceAccountKey.json
 node_modules/
 xd.txt

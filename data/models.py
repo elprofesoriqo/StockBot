@@ -1,7 +1,5 @@
-from xmlrpc.client import DateTime
-
 from sqlalchemy.orm import relationship
-from database import Base
+from data.database import Base
 from sqlalchemy import Column, Integer, String, ForeignKey
 
 
@@ -38,7 +36,7 @@ class Comments(Base):
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
     date = Column(String, nullable=False)
-
+    status = Column(Integer, nullable=False)
     symbol = relationship("Stocks", back_populates="comments")
     user = relationship("Users", back_populates="comments")
 
